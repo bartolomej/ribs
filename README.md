@@ -21,3 +21,9 @@ Run tests:
 ```shell script
 go test
 ```
+
+## Related projects
+- [good-first-issue](https://github.com/cutenode/good-first-issue)
+- [awesome-for-beginners](https://github.com/MunGell/awesome-for-beginners)
+- [up-for-grabs](https://github.com/up-for-grabs/up-for-grabs.net)
+- [first-contributions](https://github.com/firstcontributions/first-contributions)

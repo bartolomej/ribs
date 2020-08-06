@@ -1,27 +1,27 @@
 package data
 
 import (
-	"fmt"
 	"os"
 	"path"
 	"reflect"
 	"testing"
 )
 
-func TestCloneExploreRepo(t *testing.T) {
-	MakeDirIfNotExists(CacheRoot())
+func TestExtractFrontMatter(t *testing.T) {
+	data := `---
+aliases: phpfusion, php-fusion-cms, php-fusion-themes, php-fusion-infusions
+created_by: PHP-Fusion Inc
+---
+PHP-Fusion is an all in one integrated and scalable platform a lightweight open source content management system (CMS) written in PHP that will fit any purpose when it comes to website productions, whether you are creating community portals or personal sites.
+`
 
-	if !fileExists(CacheRoot()) {
-		t.Error(fmt.Sprintf("Cache directory %s not created", CacheRoot()))
+	fm := extractFrontMatter(data)
+
+	if fm[0] == '-' {
+		t.Errorf("First char is '-': %s", fm)
 	}
-
-	err := cloneExploreRepo(CacheRoot())
-	if err != nil {
-		t.Error(fmt.Sprintf("Command error is not nil: %s", err.Error()))
-	}
-
-	if !fileExists(path.Join(CacheRoot(), "explore")) {
-		t.Error(fmt.Sprintf("Repository directory not downloaded"))
+	if fm[len(fm)-1] == '-' {
+		t.Errorf("Last char is '-': %s", fm)
 	}
 }
 
@@ -34,7 +34,7 @@ short_description: 3D modeling is the process of virtually developing the surfac
 topic: 3d
 wikipedia_url: https://en.wikipedia.org/wiki/3D_modeling
 ---
-3D modeling uses specialized software to create a digital model of a physical object. It is an aspect of 3D computer graphics, used for video games, 3D printing, and VR, among other applications.`
+3D modeling uses specialized software to create a digital model of a physical object.`
 
 	actual := parseTopicData(data)
 
@@ -70,6 +70,37 @@ Model Zoo is a common way that open source frameworks and companies organize the
 
 	if !reflect.DeepEqual(expected, actual) {
 		t.Errorf("Expected collection struct not equal to actual struct: %s", actual)
+	}
+}
+
+func TestCloneExploreRepo(t *testing.T) {
+	MakeDirIfNotExists(CacheRoot())
+
+	if !fileExists(CacheRoot()) {
+		t.Errorf("Cache directory %s not created", CacheRoot())
+	}
+
+	err := cloneExploreRepo(CacheRoot())
+	if err != nil {
+		t.Errorf("Command error is not nil: %s", err.Error())
+	}
+
+	if !fileExists(path.Join(CacheRoot(), "explore")) {
+		t.Errorf("Repository directory not downloaded")
+	}
+}
+
+func TestExtractExploreData(t *testing.T) {
+	ExtractExploreData()
+
+	if !fileExists(path.Join(DataPath(), "topics.json")) {
+		t.Errorf("'topics.json' file not created under %s", DataPath())
+	}
+	if !fileExists(path.Join(DataPath(), "collections.json")) {
+		t.Errorf("'collections.json' file not created under %s", DataPath())
+	}
+	if fileExists(path.Join(CacheRoot(), "explore")) {
+		t.Errorf("'explore' directory not removed under %s", CacheRoot())
 	}
 }
 

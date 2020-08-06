@@ -16,58 +16,75 @@ const (
 )
 
 type Topic struct {
-	Aliases          []string
-	DisplayName      string
-	ShortDescription string
-	Topic            string
+	Aliases          []string `json:"aliases"`
+	DisplayName      string   `json:"displayName"`
+	ShortDescription string   `json:"shortDescription"`
+	Topic            string   `json:"topic"`
 }
 
 type Collection struct {
-	Items       []string `yaml:"items"`
-	DisplayName string   `yaml:"display_name"`
+	Items       []string `yaml:"items"json:"items"`
+	DisplayName string   `yaml:"display_name"json:"displayName"`
 }
 
-func ExploreData() {
+func ExtractExploreData() {
 	MakeDirIfNotExists(CacheRoot())
-	defer os.Remove(path.Join(CacheRoot(), "explore"))
+
+	log.Printf("Downloading %s git repository\n", exploreRepoUrl)
+
 	cloneErr := cloneExploreRepo(CacheRoot())
 	if cloneErr != nil {
 		log.Fatalf("Failed to clone %s repo: %s", exploreRepoUrl, cloneErr.Error())
 	}
 
-	// parse topics directory
+	log.Printf("Parsing topics files\n")
+
 	var topics []Topic
 	topicsPath := path.Join(CacheRoot(), "explore", "topics")
 	topicFiles, topicErr := ioutil.ReadDir(topicsPath)
 	check(topicErr)
 
 	for _, f := range topicFiles {
+		if !f.IsDir() {
+			continue
+		}
 		tData, tErr := ioutil.ReadFile(path.Join(topicsPath, f.Name(), "index.md"))
 		check(tErr)
 		topics = append(topics, parseTopicData(string(tData)))
 	}
 
-	tJson, tErr := json.Marshal(topics)
+	MakeDirIfNotExists(DataPath())
+
+	tJson, tErr := json.MarshalIndent(topics, "", "  ")
 	check(tErr)
 	tWriteErr := ioutil.WriteFile(path.Join(DataPath(), "topics.json"), tJson, 0775)
 	check(tWriteErr)
 
-	// parse collections directory
+	log.Printf("Parsing collection files\n")
+
 	var collections []Collection
 	collPath := path.Join(CacheRoot(), "explore", "collections")
 	collFiles, collErr := ioutil.ReadDir(collPath)
 	check(collErr)
 
 	for _, f := range collFiles {
+		if !f.IsDir() {
+			continue
+		}
 		cData, tErr := ioutil.ReadFile(path.Join(collPath, f.Name(), "index.md"))
 		check(tErr)
 		collections = append(collections, parseCollectionData(string(cData)))
 	}
 
-	cJson, cErr := json.Marshal(collections)
+	cJson, cErr := json.MarshalIndent(collections, "", "  ")
 	check(cErr)
 	cWriteErr := ioutil.WriteFile(path.Join(DataPath(), "collections.json"), cJson, 0775)
 	check(cWriteErr)
+
+	err := os.RemoveAll(path.Join(CacheRoot(), "explore"))
+	if err != nil {
+		log.Printf("Failed to remove 'explore' dir: %s", err.Error())
+	}
 }
 
 func cloneExploreRepo(targetDir string) error {
@@ -113,8 +130,8 @@ func parseCollectionData(s string) Collection {
 }
 
 func extractFrontMatter(s string) string {
-	i0 := strings.IndexAny(s, "---") + 4
-	i1 := strings.LastIndexAny(s, "---") - 3
+	i0 := strings.Index(s, "---\n") + 4
+	i1 := strings.LastIndex(s, "\n---")
 	return s[i0:i1]
 }
 
